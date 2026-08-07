@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v20';
+  var V='v21';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -939,8 +939,7 @@ function ctxEdit(){
   ctxId=savedId;
 }
 function ctxDelete(){
-  const ok=prompt('🚨 შეკვეთის საბოლოო წაშლა!\n\nდასასტურებლად დაწერე: წაშლა');
-  if(ok!=='წაშლა'){ closeCtx(); return; }
+  if(!confirm('🚨 შეკვეთის წაშლა — დარწმუნებული ხარ?')){ closeCtx(); return; }
   const delId=ctxId;
   store(load().filter(x=>x.id!==delId));
   cloudDelete(delId);
@@ -1103,7 +1102,7 @@ function renderCourierStats(){
 function render(){
   const all=load();
   const cdn=document.getElementById('cal-day-num');
-  if(cdn) cdn.textContent=new Date().getDate();
+  if(cdn) cdn.textContent = (tab==='cal' && calDate) ? parseInt(calDate.split('-')[2],10) : new Date().getDate();
   const bar=document.getElementById('daybar');
   bar.innerHTML=''; bar.style.display='none';
 
