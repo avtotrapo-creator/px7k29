@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v19';
+  var V='v20';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -536,12 +536,21 @@ function cloudUpdate(order){
   }).catch(function(){});
 }
 function cloudLoad(){
-  return fetch(SUPA_URL+'/rest/v1/orders?select=*&order=id',{headers:_sh()}).then(function(r){
-    if(!r.ok) return null;
-    return r.json().then(function(data){
-      return data.map(function(row){return {id:row.id,raw:row.raw,phone:row.phone,date:row.date,courier:row.courier,done:row.done,by:row.by_user,rating:row.rating||null};});
-    });
-  }).catch(function(){return null;});
+  // ჩამოტვირთვა გვერდ-გვერდ (თითო 1000), რომ 1000-ზე მეტი შეკვეთაც სრულად ჩაიტვირთოს.
+  var PAGE=1000, from=0, acc=[];
+  function mapRow(row){return {id:row.id,raw:row.raw,phone:row.phone,date:row.date,courier:row.courier,done:row.done,by:row.by_user,rating:row.rating||null};}
+  function fetchPage(){
+    return fetch(SUPA_URL+'/rest/v1/orders?select=*&order=id',{headers:_sh({'Range-Unit':'items','Range':from+'-'+(from+PAGE-1)})}).then(function(r){
+      if(!r.ok) return acc.length?acc:null;
+      return r.json().then(function(data){
+        acc=acc.concat(data.map(mapRow));
+        if(!data.length || data.length<PAGE) return acc;
+        from+=PAGE;
+        return fetchPage();
+      });
+    }).catch(function(){return acc.length?acc:null;});
+  }
+  return fetchPage();
 }
 function cleanFuture(){
   // მომავალი დღეების (და დღევანდელის) ყველა შეკვეთის ერთიანი წაშლა — მხოლოდ ავთო/ხათო, მხოლოდ ხელით დაჭერით.
