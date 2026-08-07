@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v22';
+  var V='v23';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -1340,9 +1340,22 @@ function dayTotalsHtml(orders){
     <div style="font-size:15px;line-height:1.95">${rows.join('<br>')}</div>
   </div>`;
 }
+function _dayMismatch(o){
+  // true — თუ შეკვეთის ტექსტი მიუთითებს უფრო გვიან დღეზე, ვიდრე იმ დღეზე რომელზეც დევს (მაგ. „8 ში" დღეს ჩასმული).
+  // მხოლოდ გაფრთხილებაა — არაფერს გადაიტანს. საპირისპირო მიმართულებას (ადრინდელი ტექსტი გვიან დღეზე) არ ვნიშნავთ.
+  try{
+    if(!o || !o.date) return false;
+    var c=new Date(Number(o.id));
+    if(!(c.getFullYear()>2020)) return false;
+    var td=_intendedDate(o.raw||'', c);
+    return !!(td && td > o.date);
+  }catch(e){ return false; }
+}
 function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
   const dateBadge = showDate ? `<span class="date-badge" style="font-size:10px;background:#f0f0f0;padding:2px 7px;border-radius:10px;font-weight:700">${dayName(o.date)}</span>` : '';
   const dupLabel = isDuplicate ? `<span style="font-size:10px;font-weight:900;color:#e74c3c;padding:2px 7px;border-radius:10px;margin-bottom:4px;display:inline-block">⚠️ განმეორება</span>` : '';
+  const dayWarn = !isDuplicate && _dayMismatch(o);
+  const warnLabel = dayWarn ? `<span style="font-size:10px;font-weight:900;color:#e74c3c;padding:2px 7px;border-radius:10px;margin-bottom:4px;display:inline-block">⚠️ სხვა დღის შეკვეთა?</span>` : '';
   const myRating = o.rating || null;
   const isMyCourier = !ADMINS.includes(me) && o.courier === me;
   let ratingArea = '';
@@ -1354,10 +1367,10 @@ function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
   } else if(myRating){
     ratingArea = `<div style="font-size:22px;margin-top:4px">${myRating==='up'?'👍':'👎'}</div>`;
   }
-  return `<div class="card ${o.done?'done':''} ${isDuplicate?'duplicate':''}" data-id="${o.id}" style="border-left-color:${isDuplicate?'#e74c3c':bcol}">
+  return `<div class="card ${o.done?'done':''} ${(isDuplicate||dayWarn)?'duplicate':''}" data-id="${o.id}" style="border-left-color:${(isDuplicate||dayWarn)?'#e74c3c':bcol}">
     <div style="padding:12px 14px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
       <div style="flex:1">
-        ${dupLabel}
+        ${dupLabel}${warnLabel}
         ${ph?`<a class="phonebtn" href="tel:${esc(ph)}" style="margin-bottom:6px;display:inline-flex">📞 ${esc(o.phone)}</a>`:''}
         <div class="card-text" style="font-size:17px;white-space:pre-line;line-height:1.65;margin-top:${ph?'6':'0'}px">${esc((o.raw||'').replace(/^\[D[012]\]/,''))}</div>
       </div>
