@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v21';
+  var V='v22';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -519,6 +519,7 @@ function store(a){
 }
 
 function cloudPush(order){
+  _localDirtyUntil=Date.now()+4000;
   return fetch(SUPA_URL+'/rest/v1/orders',{
     method:'POST',
     headers:_sh({'Prefer':'resolution=merge-duplicates'}),
@@ -526,9 +527,11 @@ function cloudPush(order){
   }).catch(function(){});
 }
 function cloudDelete(id){
+  _localDirtyUntil=Date.now()+4000;
   return fetch(SUPA_URL+'/rest/v1/orders?id=eq.'+id,{method:'DELETE',headers:_sh()}).catch(function(){});
 }
 function cloudUpdate(order){
+  _localDirtyUntil=Date.now()+4000;
   return fetch(SUPA_URL+'/rest/v1/orders?id=eq.'+order.id,{
     method:'PATCH',
     headers:_sh(),
@@ -594,14 +597,20 @@ function repairWrongFutureDates(arr){
   // ✏️ ჩასწორებით შეიცვლება; წაშლა მხოლოდ 🗑️ ღილაკით.
   store(arr);
 }
-var _realtimeTimer=null;
+var _realtimeTimer=null, _lastCloudSig='', _localDirtyUntil=0;
 function startRealtime(){
   if(_realtimeTimer) clearInterval(_realtimeTimer);
   _realtimeTimer=setInterval(function(){
+    if(Date.now()<_localDirtyUntil) return;   // ახლახან ლოკალურად შეიცვალა — ველოდებით, რომ ღრუბელმა დაასწროს, ჯერ არ გადავაწეროთ
     cloudLoad().then(function(a){
-      if(a){ store(a); render(); _showSyncTime(); }
+      if(!a) return;
+      _showSyncTime();
+      var sig=JSON.stringify(a);
+      if(sig===_lastCloudSig) return;   // არაფერი შეცვლილა → ხელახლა არ ვხატავთ (სისწრაფისთვის)
+      _lastCloudSig=sig;
+      store(a); render();
     }).catch(function(){});
-  },5000);
+  },7000);
 }
 function _showSyncTime(){
   var el=document.getElementById('sync-time');
