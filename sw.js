@@ -1,5 +1,5 @@
 // პიწკინა Service Worker — network-first, always fresh
-const CACHE = 'piwkina-v13';
+const CACHE = 'piwkina-v14';
 
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {

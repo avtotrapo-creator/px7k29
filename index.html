@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v23';
+  var V='v24';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -1316,7 +1316,9 @@ function productTotals(orders){
       // ბუნდოვანი წონაც (მაგ. "5-+", "5+", "6/7") — იწყება ციფრით, ქართული ასოები არ აქვს, გრძელი ნომერი (ტელეფონი) არ არის
       const looseWeight = /^\d/.test(core) && core.replace(/[^Ⴀ-ჿ]/g,'').length===0 && !/\d{4,}/.test(core);
       // 4+ ციფრი ზედიზედ = ტელეფონის ნომერი, არა წონა — გოჭად არ ჩაითვლება
-      const isWeight = ( /კგ/.test(l) || /^\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?$/.test(core) || looseWeight ) && !/\d{4,}/.test(l);
+      // „კგ" მხოლოდ მაშინ ითვლება წონად, თუ ხაზი ციფრით იწყება (მაგ. „6 კგ").
+      // თუ „კგ" მისამართის ბოლოს შემოგეპარა (მაგ. „ვაზისუბანი კორპ 5 კგ") — ხაზი ასოთი იწყება და გოჭად აღარ ითვლება.
+      const isWeight = ( ( /კგ/.test(l) && /^\d/.test(core) ) || /^\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?$/.test(core) || looseWeight ) && !/\d{4,}/.test(l);
       if(isWeight){ piglet+=pcnt; return; }
       if(/გოჭ/i.test(l)){ piglet+=pcnt; return; }
     });
