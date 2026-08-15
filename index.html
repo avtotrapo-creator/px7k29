@@ -1281,7 +1281,7 @@ function _isDateLine(l){
     || /\d+\s*ში(\s|$)/.test(l);
 }
 function productTotals(orders){
-  let piglet=0, khach=0, lob=0, dafa=0;
+  let piglet=0, khach=0, lob=0, dafa=0, dafaStur=0, dafaSal=0;
   const stur={}, sal={};   // kg -> ცალის რაოდენობა
   const intCount=s=>{ const m=s.match(/(\d+)/); return m?parseInt(m[1]):1; };
   const addFish=(map,l)=>{
@@ -1302,7 +1302,7 @@ function productTotals(orders){
       const l=line.trim();
       if(!l) return;
       // დაფა — ცალკე ითვლება, ნებისმიერ ხაზზე (ზუთხის/ორაგულის — მნიშვნელობა არ აქვს)
-      if(/დაფ[აე]/.test(l)){ const dm=l.match(/(\d+)\s*დაფ/); dafa+=dm?parseInt(dm[1]):1; }
+      if(/დაფ[აე]/.test(l)){ let dm=l.match(/(\d+)\s*ც?\s*დაფ/); let n; if(dm){ n=parseInt(dm[1]); } else { let dm2=l.match(/დაფ\S*\s*(\d+)/); n=dm2?parseInt(dm2[1]):1; } if(/ორაგულ/.test(l)) dafaSal+=n; else if(/ზუთხ/.test(l)) dafaStur+=n; else dafa+=n; }
       const cm=l.match(/(?:^|\s)(\d+)\s*ც(?:ალი)?(?:\s|\d|$)/);
       const pcnt=cm?parseInt(cm[1]):1;
       if(/ზუთხ/i.test(l)){ addFish(stur,l); return; }
@@ -1323,7 +1323,7 @@ function productTotals(orders){
       if(/გოჭ/i.test(l)){ piglet+=pcnt; return; }
     });
   });
-  return {piglet, stur, sal, khach, lob, dafa};
+  return {piglet, stur, sal, khach, lob, dafa, dafaStur, dafaSal};
 }
 function _fmtN(n){ return (n%1)?(+n.toFixed(2)).toString():n.toString(); }
 function _fishStr(map){
@@ -1336,6 +1336,8 @@ function dayTotalsHtml(orders){
   if(Object.keys(t.sal).length) rows.push(`🐟 ორაგული — ${_fishStr(t.sal)}`);
   if(t.khach) rows.push(`🫓 ხაჭაპური — <b>${t.khach}</b>`);
   if(t.lob) rows.push(`🫘 ლობიანი — <b>${t.lob}</b>`);
+  if(t.dafaStur) rows.push(`🪵 ზუთხის დაფა — <b>${t.dafaStur}</b>`);
+  if(t.dafaSal) rows.push(`🪵 ორაგულის დაფა — <b>${t.dafaSal}</b>`);
   if(t.dafa) rows.push(`🪵 დაფა — <b>${t.dafa}</b>`);
   return `<div style="margin:16px 0 10px;border:2px solid #c0392b;border-radius:14px;background:rgba(192,57,43,.07);padding:12px 16px">
     <div style="font-size:13px;font-weight:900;color:#c0392b;margin-bottom:8px;letter-spacing:.5px">📊 დღის ჯამი · მხოლოდ ავთო/ხათო</div>
