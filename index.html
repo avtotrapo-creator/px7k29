@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v31';
+  var V='v32';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -493,13 +493,15 @@ function orderAddr(o, ph){
   const digits=String(ph||'').replace(/\D/g,'');
   const lines=String(o.raw||'').replace(/^\[D[012]\]/,'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
   const isDate=function(l){ return /(დღეს|დღედ|ხვალ|ზეგ|კვირა|ორშ|სამშ|ოთხ|ხუთ|პარ|შაბ)/.test(l) || /\d+\s*ში/.test(l) || /\d+\s*სთ/.test(l) || /\d+\s*ს(\s|$)/.test(l) || /\d\s*[-–]\s*\d/.test(l); };
-  const PRODUCT=/(წიწ|ხაჭაპ|ლობ|ორაგულ|ზუთხ|დაფ|გоჭ|გოჭ|ღვინ|თევზ|კგ|უცხიმ|ბომბ|ცომ|ნამცხ|ტორტ|სასმ|საჩუქ|ბატ|ინდაურ|ქათ|ცხვ|ღორ|ხორც|ტყემ|საწებ|მჟავ|ბადრიჯ|ცხარ|ნიგვ|ჩირ|მწნილ|სუნელ)/;
+  const PRODUCT=/(წიწ|ხაჭაპ|ლობ|ორაგულ|ზუთხ|დაფ|გоჭ|გოჭ|ღვინ|თევზ|კგ|უცხიმ|ბომბ|ცომ|ნამცხ|ტორტ|სასმ|საჩუქ|ბატ|ინდაურ|ქათ|ცხვ|ღორ|ხორც|ტყემ|საწებ|მჟავ|ბადრიჯ|ცხარ|ნიგვ|ჩირ|მწნილ|სუნელ|ნახევარ)/;
   const NOTE=/(თ\s*\/\s*[ნწ]|ნაღდ|გადარიცხ|ხურდ|თან(\s|$)|დაჭრ|დაუჭრ|მთელ)/;
+  const HALF=/(^|\s)ნახ(\s|$)/;   // "ნახ" = ნახევარი გоჭი (half), NOT ნახალოვკა
   const cand=[];
   for(const l of lines){
     if(l.replace(/\D/g,'').length>=7) continue;      // phone/second-number line
     if(isDate(l)) continue;
     if(PRODUCT.test(l)) continue;
+    if(HALF.test(l)) continue;
     if(NOTE.test(l)) continue;
     if(!/[ა-ჰ]/.test(l)) continue;                    // must contain Georgian letters
     cand.push(l);
