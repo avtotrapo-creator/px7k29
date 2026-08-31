@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v28';
+  var V='v29';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -504,10 +504,10 @@ function orderAddr(o, ph){
     if(!/[ა-ჰ]/.test(l)) continue;                    // must contain Georgian letters
     cand.push(l);
   }
-  let addr=cand.filter(function(l){return /\d/.test(l);}).pop();   // street with a number
-  if(!addr) addr=cand.pop();                                       // else a district name
-  if(!addr) return '';
-  return addr.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'').replace(/\s+/g,' ').trim().slice(0,40);
+  if(!cand.length) return '';
+  const clean=function(l){ return l.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'').replace(/\s+/g,' ').trim(); };
+  const parts=cand.map(clean).filter(Boolean);   // ყველა მისამართის/უბნის ხაზი, თანმიმდევრობით
+  return parts.join(' ').replace(/\s+/g,' ').trim().slice(0,50);
 }
 function saveVCard(name, phone){
   const nm=(name||'კლიენტი').replace(/[\r\n;]/g,' ').trim();
@@ -1426,7 +1426,7 @@ function _dayMismatch(o){
 function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
   const _cn = custName(o, ph);
   const _ad = orderAddr(o, ph);
-  const cname = (_cn + (_ad ? ' '+_ad : ' 📌')).replace(/\s+/g,' ').trim().slice(0,60);
+  const cname = (_ad ? (_cn + '. ' + _ad) : (_cn + ' 📌')).replace(/\s+/g,' ').trim().slice(0,60);
   const showAdd = ADMINS.includes(me) && ph && !isKnownPhone(ph);
   const dateBadge = showDate ? `<span class="date-badge" style="font-size:10px;background:#f0f0f0;padding:2px 7px;border-radius:10px;font-weight:700">${dayName(o.date)}</span>` : '';
   const dupLabel = isDuplicate ? `<span style="font-size:10px;font-weight:900;color:#e74c3c;padding:2px 7px;border-radius:10px;margin-bottom:4px;display:inline-block">⚠️ განმეორება</span>` : '';
