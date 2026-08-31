@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v27';
+  var V='v28';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -492,19 +492,20 @@ function custName(o, ph){
 function orderAddr(o, ph){
   const digits=String(ph||'').replace(/\D/g,'');
   const lines=String(o.raw||'').replace(/^\[D[012]\]/,'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
-  const isDate=function(l){ return /(დღეს|ხვალ|ზეგ|კვირა|ორშ|სამშ|ოთხ|ხუთ|პარ|შაბ)/.test(l) || /\bში\b/.test(l) || /\d\s*[-–]\s*\d/.test(l) || /\d+\s*ს(\s|$)/.test(l); };
-  const isWeight=function(l){ return /კგ/.test(l); };
-  const notes=/^(დაჭრ|დაუჭრ|მთელ|ბომბ|ორაგულ|ზუთხ|დაფ|ლობ|ღვინ|თევზ|ნაღდ|გადარიცხ|ხურდ|საჩუქ|თან(\s|$))/i;
+  const isDate=function(l){ return /(დღეს|დღედ|ხვალ|ზეგ|კვირა|ორშ|სამშ|ოთხ|ხუთ|პარ|შაბ)/.test(l) || /\bში\b/.test(l) || /\d\s*[-–]\s*\d/.test(l) || /\d+\s*ს(\s|$)/.test(l); };
+  const PRODUCT=/(წიწ|ხაჭაპ|ლობ|ორაგულ|ზუთხ|დაფ|გоჭ|გოჭ|ღვინ|თევზ|კგ|უცხიმ|ბომბ|ცომ|ნამცხ|ტორტ|სასმ|საჩუქ|ბატ|ინდაურ|ქათ|ცხვ|ღორ|ხორც)/;
+  const NOTE=/(თ\s*\/\s*[ნწ]|ნაღდ|გადარიცხ|ხურდ|თან(\s|$)|დაჭრ|დაუჭრ|მთელ)/;
   const cand=[];
   for(const l of lines){
-    if(digits && l.replace(/\D/g,'').indexOf(digits)>=0) continue;
+    if(l.replace(/\D/g,'').length>=7) continue;      // phone/second-number line
     if(isDate(l)) continue;
-    if(isWeight(l)) continue;
-    if(notes.test(l)) continue;
+    if(PRODUCT.test(l)) continue;
+    if(NOTE.test(l)) continue;
+    if(!/[ა-ჰ]/.test(l)) continue;                    // must contain Georgian letters
     cand.push(l);
   }
-  let addr=cand.filter(function(l){return /[ა-ჰ]/.test(l) && /\d/.test(l);}).pop();
-  if(!addr) addr=cand.filter(function(l){return /[ა-ჰ]/.test(l);}).pop();
+  let addr=cand.filter(function(l){return /\d/.test(l);}).pop();   // street with a number
+  if(!addr) addr=cand.pop();                                       // else a district name
   if(!addr) return '';
   return addr.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'').replace(/\s+/g,' ').trim().slice(0,40);
 }
@@ -1425,7 +1426,7 @@ function _dayMismatch(o){
 function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
   const _cn = custName(o, ph);
   const _ad = orderAddr(o, ph);
-  const cname = (_cn + (_ad ? ' '+_ad : '')).replace(/\s+/g,' ').trim().slice(0,60);
+  const cname = (_cn + (_ad ? ' '+_ad : ' 📌')).replace(/\s+/g,' ').trim().slice(0,60);
   const showAdd = ADMINS.includes(me) && ph && !isKnownPhone(ph);
   const dateBadge = showDate ? `<span class="date-badge" style="font-size:10px;background:#f0f0f0;padding:2px 7px;border-radius:10px;font-weight:700">${dayName(o.date)}</span>` : '';
   const dupLabel = isDuplicate ? `<span style="font-size:10px;font-weight:900;color:#e74c3c;padding:2px 7px;border-radius:10px;margin-bottom:4px;display:inline-block">⚠️ განმეორება</span>` : '';
