@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v29';
+  var V='v30';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -1426,7 +1426,8 @@ function _dayMismatch(o){
 function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
   const _cn = custName(o, ph);
   const _ad = orderAddr(o, ph);
-  const cname = (_ad ? (_cn + '. ' + _ad) : (_cn + ' 📌')).replace(/\s+/g,' ').trim().slice(0,60);
+  const _pickup = /📌/.test(String(o.raw||'')) || /თ\s*\/\s*წ/.test(String(o.raw||''));
+  const cname = ((_pickup || !_ad) ? (_cn + ' 📌') : (_cn + '. ' + _ad)).replace(/\s+/g,' ').trim().slice(0,60);
   const showAdd = ADMINS.includes(me) && ph && !isKnownPhone(ph);
   const dateBadge = showDate ? `<span class="date-badge" style="font-size:10px;background:#f0f0f0;padding:2px 7px;border-radius:10px;font-weight:700">${dayName(o.date)}</span>` : '';
   const dupLabel = isDuplicate ? `<span style="font-size:10px;font-weight:900;color:#e74c3c;padding:2px 7px;border-radius:10px;margin-bottom:4px;display:inline-block">⚠️ განმეორება</span>` : '';
