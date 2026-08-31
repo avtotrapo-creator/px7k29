@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v25';
+  var V='v26';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -119,9 +119,9 @@ body.dark .slotbtn.on { border-color:#e74c3c; background:#e74c3c; color:#fff; }
 
 .ctop  { display:flex; align-items:center; justify-content:space-between; padding:10px 14px 6px; }
 .phonebtn { display:inline-flex; align-items:center; gap:6px; font-size:15px; font-weight:900; color:#15803d; text-decoration:none; background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:24px; padding:6px 13px; }
-.addc { background:#2563eb; color:#fff; border:none; border-radius:24px; padding:7px 15px; font-size:14px; font-weight:900; cursor:pointer; line-height:1; white-space:nowrap; box-shadow:0 1px 5px rgba(37,99,235,.35); -webkit-tap-highlight-color:transparent; }
-.addc:active { transform:scale(.96); }
-.addc:disabled { opacity:.9; }
+.addc { background:#2563eb; color:#fff; border:none; border-radius:50%; width:34px; height:34px; padding:0; font-size:22px; font-weight:900; cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(37,99,235,.45); -webkit-tap-highlight-color:transparent; margin-top:2px; }
+.addc:active { transform:scale(.92); }
+.addc:disabled { opacity:.9; background:#9ca3af; box-shadow:none; }
 body.dark .addc { background:#3b82f6; }
 .cname  { font-size:14px; font-weight:700; color:#333; text-align:right; }
 .cflags { display:flex; flex-direction:column; align-items:flex-end; gap:3px; margin-top:2px; }
@@ -488,6 +488,25 @@ function custName(o, ph){
     }
   }
   return String(o.phone||digits||'კლიენტი').trim();
+}
+function orderAddr(o, ph){
+  const digits=String(ph||'').replace(/\D/g,'');
+  const lines=String(o.raw||'').replace(/^\[D[012]\]/,'').split('\n').map(function(l){return l.trim();}).filter(Boolean);
+  const isDate=function(l){ return /(დღეს|ხვალ|ზეგ|კვირა|ორშ|სამშ|ოთხ|ხუთ|პარ|შაბ)/.test(l) || /\bში\b/.test(l) || /\d\s*[-–]\s*\d/.test(l) || /\d+\s*ს(\s|$)/.test(l); };
+  const isWeight=function(l){ return /კგ/.test(l); };
+  const notes=/^(დაჭრ|დაუჭრ|მთელ|ბომბ|ორაგულ|ზუთხ|დაფ|ლობ|ღვინ|თევზ|ნაღდ|გადარიცხ|ხურდ|საჩუქ|თან(\s|$))/i;
+  const cand=[];
+  for(const l of lines){
+    if(digits && l.replace(/\D/g,'').indexOf(digits)>=0) continue;
+    if(isDate(l)) continue;
+    if(isWeight(l)) continue;
+    if(notes.test(l)) continue;
+    cand.push(l);
+  }
+  let addr=cand.filter(function(l){return /[ა-ჰ]/.test(l) && /\d/.test(l);}).pop();
+  if(!addr) addr=cand.filter(function(l){return /[ა-ჰ]/.test(l);}).pop();
+  if(!addr) return '';
+  return addr.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,'').replace(/\s+/g,' ').trim().slice(0,40);
 }
 function saveVCard(name, phone){
   const nm=(name||'კლიენტი').replace(/[\r\n;]/g,' ').trim();
@@ -1404,7 +1423,9 @@ function _dayMismatch(o){
   }catch(e){ return false; }
 }
 function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
-  const cname = custName(o, ph);
+  const _cn = custName(o, ph);
+  const _ad = orderAddr(o, ph);
+  const cname = (_cn + (_ad ? ' '+_ad : '')).replace(/\s+/g,' ').trim().slice(0,60);
   const showAdd = ADMINS.includes(me) && ph && !isKnownPhone(ph);
   const dateBadge = showDate ? `<span class="date-badge" style="font-size:10px;background:#f0f0f0;padding:2px 7px;border-radius:10px;font-weight:700">${dayName(o.date)}</span>` : '';
   const dupLabel = isDuplicate ? `<span style="font-size:10px;font-weight:900;color:#e74c3c;padding:2px 7px;border-radius:10px;margin-bottom:4px;display:inline-block">⚠️ განმეორება</span>` : '';
@@ -1425,10 +1446,7 @@ function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
     <div style="padding:12px 14px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
       <div style="flex:1">
         ${dupLabel}${warnLabel}
-        ${ph?`<div style="display:flex;align-items:center;gap:18px;margin-bottom:6px;flex-wrap:wrap">
-          <a class="phonebtn" href="tel:${esc(ph)}" style="display:inline-flex">📞 ${esc(o.phone)}</a>
-          ${showAdd?`<button class="addc" data-ph="${esc(o.phone||ph)}" data-nm="${esc(cname)}" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation();addContactFromBtn(this)">➕ დამატება</button>`:''}
-        </div>`:''}
+        ${ph?`<a class="phonebtn" href="tel:${esc(ph)}" style="margin-bottom:6px;display:inline-flex">📞 ${esc(o.phone)}</a>`:''}
         <div class="card-text" style="font-size:17px;white-space:pre-line;line-height:1.65;margin-top:${ph?'6':'0'}px">${esc((o.raw||'').replace(/^\[D[012]\]/,''))}</div>
       </div>
       <div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px">
@@ -1436,6 +1454,7 @@ function cardHtml(o, ph, ctag, bcol, showDate, isDuplicate, slotIdx){
         ${slotIdx===0?'<span style="font-size:20px;line-height:1;opacity:.85">🏃</span>':slotIdx===1?'<span style="font-size:20px;line-height:1;opacity:.85">☀️</span>':slotIdx===2?'<span style="font-size:20px;line-height:1;opacity:.85">🌙</span>':''}
         ${o.done?'<span class="flag fdone" style="font-size:22px;line-height:1">✅</span>':'<span class="flag fwait">⏳</span>'}
         ${ratingArea}
+        ${showAdd?`<button class="addc" data-ph="${esc(o.phone||ph)}" data-nm="${esc(cname)}" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation();addContactFromBtn(this)" title="კონტაქტში დამატება">+</button>`:''}
       </div>
     </div>
     <div class="cbot">
