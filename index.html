@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v32';
+  var V='v33';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -528,11 +528,17 @@ function addContactFromBtn(btn){
   const phone=btn.getAttribute('data-ph')||'';
   saveVCard(name, phone);
   const n=normPhone(phone);
-  if(n){ SAVED.add(n); persistSaved(); }
+  if(n){ SAVED.add(n); persistSaved(); pushSavedCloud(); }
   btn.textContent='✅ დაემატა';
   btn.disabled=true;
   btn.style.background='#9ca3af';
   btn.style.boxShadow='none';
+}
+/* ღრუბლოვანი სინქრონი: შენახული ნომრები ინახება Supabase-ის orders ცხრილში id=1 სპეც-სტრიქონად (JSON), რომ ყველა მოწყობილობამ დაინახოს „დამატებულად". id=1 არასდროს ეჯახება რეალურ შეკვეთას (id = Date.now()). */
+function pushSavedCloud(){
+  try{
+    fetch(SUPA_URL+'/rest/v1/orders',{method:'POST',headers:_sh({'Prefer':'resolution=merge-duplicates'}),body:JSON.stringify({id:1,raw:JSON.stringify([...SAVED]),phone:'',date:'2000-01-01',courier:'',done:false,by_user:'',rating:null})}).catch(function(){});
+  }catch(_){}
 }
 function slotBucket(raw){
   // manual override stored as [D0],[D1],[D2] prefix
@@ -616,7 +622,10 @@ function cloudLoad(){
     return fetch(SUPA_URL+'/rest/v1/orders?select=*&order=id',{headers:_sh({'Range-Unit':'items','Range':from+'-'+(from+PAGE-1)})}).then(function(r){
       if(!r.ok) return acc.length?acc:null;
       return r.json().then(function(data){
-        acc=acc.concat(data.map(mapRow));
+        acc=acc.concat(data.filter(function(row){
+          if(row.id===1){ try{ var b=SAVED.size; (JSON.parse(row.raw)||[]).forEach(function(x){ SAVED.add(String(x)); }); if(SAVED.size>b){ persistSaved(); _savedGrew=true; } }catch(_){}; return false; }
+          return true;
+        }).map(mapRow));
         if(!data.length || data.length<PAGE) return acc;
         from+=PAGE;
         return fetchPage();
@@ -667,7 +676,7 @@ function repairWrongFutureDates(arr){
   // ✏️ ჩასწორებით შეიცვლება; წაშლა მხოლოდ 🗑️ ღილაკით.
   store(arr);
 }
-var _realtimeTimer=null, _lastCloudSig='', _localDirtyUntil=0;
+var _realtimeTimer=null, _lastCloudSig='', _localDirtyUntil=0, _savedGrew=false;
 function startRealtime(){
   if(_realtimeTimer) clearInterval(_realtimeTimer);
   _realtimeTimer=setInterval(function(){
@@ -676,8 +685,8 @@ function startRealtime(){
       if(!a) return;
       _showSyncTime();
       var sig=JSON.stringify(a);
-      if(sig===_lastCloudSig) return;   // არაფერი შეცვლილა → ხელახლა არ ვხატავთ (სისწრაფისთვის)
-      _lastCloudSig=sig;
+      if(sig===_lastCloudSig){ if(_savedGrew){ _savedGrew=false; render(); } return; }   // შეკვეთები არ შეცვლილა; მაგრამ თუ „დამატებულთა" სია გაიზარდა ღრუბლიდან → ხელახლა დავხატოთ (ღილაკი დაიმალოს)
+      _lastCloudSig=sig; _savedGrew=false;
       store(a); render();
     }).catch(function(){});
   },7000);
