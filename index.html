@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v37';
+  var V='v38';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -1324,6 +1324,21 @@ function render(){
           </div>`;
         }
       });
+
+      // სლოტის გარეშე დარჩენილი შეკვეთები (bk>=3) — რომ არასდროს დაიმალოს (ითვლებოდა ჯამში, მაგრამ ეკრანზე არ ჩანდა → ვერ იშლებოდა)
+      var _noSlot=dayOrds.filter(function(o){return slotBucket(o.raw||'')>=3;});
+      if(_noSlot.length){
+        html+=`<div style="display:flex;align-items:center;gap:8px;margin:22px 0 12px">
+            <div style="flex:1;height:4px;background:#c0392b;border-radius:4px"></div>
+            <span style="font-size:16px;font-weight:900;color:#c0392b;letter-spacing:2px;white-space:nowrap">❓ სლოტის გარეშე</span>
+            <div style="flex:1;height:4px;background:#c0392b;border-radius:4px"></div>
+          </div>`;
+        _noSlot.forEach(function(o){
+          var ctag=o.courier?(CT[o.courier]||''):'';
+          var ph=(o.phone||'').replace(/\s/g,'');
+          html+=cardHtml(o, ph, ctag, '#c0392b', false, dupIds.has(o.id), 3);
+        });
+      }
 
       // დღის ჯამი — პროდუქტების რაოდენობა (მხოლოდ ავთო/ხათო, ავტომ. განახლდება ყოველ ცვლილებაზე)
       if(ADMINS.includes(me)) html+=dayTotalsHtml(dayOrds);
