@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v36';
+  var V='v37';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -756,14 +756,10 @@ function login(n,r){
   me=n; role=r;
   localStorage.setItem('pw4_session', JSON.stringify({name:n, role:r}));
   cloudLoad().then(a=>{
-    const local=load();
     if(a && a.length>0){
       // Cloud has data — ვინახავთ ზუსტად ისე, როგორც არის. აპი თარიღს თავისით არასდროს ცვლის.
       store(a);
       render();
-    } else if(local.length>0){
-      // Cloud empty but local has data — push all local to cloud
-      Promise.all(local.map(o=>cloudPush(o))).then(()=>render());
     } else {
       render();
     }
