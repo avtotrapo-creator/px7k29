@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v41';
+  var V='v42';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -519,7 +519,7 @@ function saveVCard(name, phone){
   const blob=new Blob([v],{type:'text/vcard;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=(nm.replace(/[^\p{L}\p{N}_-]+/gu,'_')||'contact')+'.vcf';
+  a.href=url; a.download=((nm.replace(/[^\p{L}\p{N}_-]+/gu,'_')||'contact')+'_'+_n)+'.vcf';
   document.body.appendChild(a); a.click();
   setTimeout(function(){ try{document.body.removeChild(a);}catch(_){}; URL.revokeObjectURL(url); },1500);
 }
@@ -527,12 +527,12 @@ function _markAddcSaved(el){ try{ el.textContent='✅'; el.disabled=true; el.sty
 function addContactFromBtn(btn){
   const name=btn.getAttribute('data-nm')||'კლიენტი';
   const phone=btn.getAttribute('data-ph')||'';
-  saveVCard(name, phone);
   const n=normPhone(phone);
   if(n){
     SAVED.add(n); persistSaved(); pushSavedCloud();
     document.querySelectorAll('button.addc').forEach(function(b){ if(normPhone(b.getAttribute('data-ph')||'')===n) _markAddcSaved(b); });
   } else { _markAddcSaved(btn); }
+  saveVCard(name, phone);
 }
 /* ღრუბლოვანი სინქრონი: შენახული ნომრები ინახება Supabase-ის orders ცხრილში id=1 სპეც-სტრიქონად (JSON), რომ ყველა მოწყობილობამ დაინახოს „დამატებულად". id=1 არასდროს ეჯახება რეალურ შეკვეთას (id = Date.now()). */
 function pushSavedCloud(){
