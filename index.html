@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v39';
+  var V='v40';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -704,7 +704,7 @@ function startRealtime(){
       _showSyncTime();
       if(sig===_sigStr) return;   // არაფერი შეცვლილა → სრული ჩამოტვირთვა არ ხდება (ეგრესი დაზოგილია)
       _sigStr=sig;
-      cloudLoad().then(function(a){ if(!a) return; store(a); render(); }).catch(function(){});
+      cloudLoad().then(function(a){ if(!a || !a.length) return; store(a); render(); }).catch(function(){});
     });
   },12000);
 }
