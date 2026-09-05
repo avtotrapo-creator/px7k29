@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v42';
+  var V='v43';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -540,6 +540,24 @@ function pushSavedCloud(){
     fetch(SUPA_URL+'/rest/v1/orders',{method:'POST',headers:_sh({'Prefer':'resolution=merge-duplicates'}),body:JSON.stringify({id:1,raw:JSON.stringify([...SAVED]),phone:'',date:'2000-01-01',courier:'',done:false,by_user:'',rating:null})}).catch(function(){});
   }catch(_){}
 }
+function autoCleanPrevMonths(){
+  try{
+    if(!ADMINS.includes(me)) return;
+    var now=new Date();
+    if(now.getDate()<5) return;
+    var ym=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    if(localStorage.getItem('pw_lastCleanup')===ym) return;
+    var first=ym+'-01';
+    var all=load();
+    var old=all.filter(function(o){return o.date && o.date<first;});
+    if(!old.length){ localStorage.setItem('pw_lastCleanup',ym); return; }
+    try{ localStorage.setItem('pw_preclean_backup', JSON.stringify({at:new Date().toISOString(),month:ym,orders:old})); }catch(_){}
+    old.forEach(function(o){ cloudDelete(o.id); });
+    store(all.filter(function(o){return !(o.date && o.date<first);}));
+    localStorage.setItem('pw_lastCleanup',ym);
+    render();
+  }catch(_){}
+}
 function slotBucket(raw){
   // manual override stored as [D0],[D1],[D2] prefix
   const dm=raw.match(/^\[D([012])\]/); if(dm) return parseInt(dm[1]);
@@ -781,6 +799,7 @@ function login(n,r){
     } else {
       render();
     }
+    autoCleanPrevMonths();
   });
   startRealtime();
   document.getElementById('login').style.display='none';
