@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v38';
+  var V='v39';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -570,8 +570,8 @@ function slotBucket(raw){
   return 3;
 }
 
-const SUPA_URL = 'https://nwouayjpvqqdmjblqqha.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53b3VheWpwdnFxZG1qYmxxcWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDYzOTksImV4cCI6MjA5Njg4MjM5OX0.Q03fs4ztbsoIzhFU7iisjXlMrAjKe3UupJMb4Ib41NY';
+const SUPA_URL = 'https://nmxcbcoadtqotcpfsfpv.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5teGNiY29hZHRxb3RjcGZzZnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1NjkwMjcsImV4cCI6MjEwNDE0NTAyN30.EkgrpN4tyEYyum3KjvtrqbTze2pqgSM9qbAnJRpzh1I';
 
 function _sh(extra){
   var h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
@@ -615,17 +615,17 @@ function cloudUpdate(order){
   }).catch(function(){});
 }
 function cloudLoad(){
-  // ჩამოტვირთვა გვერდ-გვერდ (თითო 1000), რომ 1000-ზე მეტი შეკვეთაც სრულად ჩაიტვირთოს.
+  // ჩამოტვირთვა გვერდ-გვერდ (თითო 1000). ეგრესის დაზოგვა: id>1 (პარამეტრების დიდი row გამოვრიცხოთ)
+  // + მხოლოდ ბოლო ~60 დღის შეკვეთები (ძველი ბაზა არ იზიდება ყოველ ჯერზე).
   var PAGE=1000, from=0, acc=[];
+  var _cd=new Date(Date.now()-60*86400000);
+  var _cut=_cd.getFullYear()+'-'+String(_cd.getMonth()+1).padStart(2,'0')+'-'+String(_cd.getDate()).padStart(2,'0');
   function mapRow(row){return {id:row.id,raw:row.raw,phone:row.phone,date:row.date,courier:row.courier,done:row.done,by:row.by_user,rating:row.rating||null};}
   function fetchPage(){
-    return fetch(SUPA_URL+'/rest/v1/orders?select=*&order=id',{headers:_sh({'Range-Unit':'items','Range':from+'-'+(from+PAGE-1)})}).then(function(r){
+    return fetch(SUPA_URL+'/rest/v1/orders?select=*&id=gt.1&date=gte.'+_cut+'&order=id',{headers:_sh({'Range-Unit':'items','Range':from+'-'+(from+PAGE-1)})}).then(function(r){
       if(!r.ok) return acc.length?acc:null;
       return r.json().then(function(data){
-        acc=acc.concat(data.filter(function(row){
-          if(row.id===1){ try{ var b=SAVED.size; (JSON.parse(row.raw)||[]).forEach(function(x){ SAVED.add(String(x)); }); if(SAVED.size>b){ persistSaved(); _savedGrew=true; } }catch(_){}; return false; }
-          return true;
-        }).map(mapRow));
+        acc=acc.concat(data.map(mapRow));
         if(!data.length || data.length<PAGE) return acc;
         from+=PAGE;
         return fetchPage();
@@ -633,6 +633,23 @@ function cloudLoad(){
     }).catch(function(){return acc.length?acc:null;});
   }
   return fetchPage();
+}
+function cloudLoadSaved(){
+  // შენახული ნომრების ბაზა (row id=1) — მხოლოდ ერთხელ, შესვლისას. აღარ იზიდება ყოველ 12 წამში.
+  return fetch(SUPA_URL+'/rest/v1/orders?id=eq.1&select=raw',{headers:_sh()}).then(function(r){
+    if(!r.ok) return;
+    return r.json().then(function(d){
+      if(d&&d[0]&&d[0].raw){ try{ var b=SAVED.size; (JSON.parse(d[0].raw)||[]).forEach(function(x){ SAVED.add(String(x)); }); if(SAVED.size>b){ persistSaved(); render(); } }catch(_){} }
+    });
+  }).catch(function(){});
+}
+function cloudSig(){
+  // იაფი „ცვლილების ხელმოწერა": შეკვეთების რაოდენობა (id>1) + ბოლო updated_at. ~150 ბაიტი.
+  return fetch(SUPA_URL+'/rest/v1/orders?select=updated_at&id=gt.1&order=updated_at.desc&limit=1',{headers:_sh({'Prefer':'count=exact','Range-Unit':'items','Range':'0-0'})}).then(function(r){
+    if(!r.ok) return null;
+    var cr=r.headers.get('content-range')||'';
+    return r.json().then(function(d){ return cr+'|'+((d&&d[0]&&d[0].updated_at)||''); });
+  }).catch(function(){return null;});
 }
 function cleanFuture(){
   // მომავალი დღეების (და დღევანდელის) ყველა შეკვეთის ერთიანი წაშლა — მხოლოდ ავთო/ხათო, მხოლოდ ხელით დაჭერით.
@@ -676,20 +693,20 @@ function repairWrongFutureDates(arr){
   // ✏️ ჩასწორებით შეიცვლება; წაშლა მხოლოდ 🗑️ ღილაკით.
   store(arr);
 }
-var _realtimeTimer=null, _lastCloudSig='', _localDirtyUntil=0, _savedGrew=false;
+var _realtimeTimer=null, _sigStr=null, _localDirtyUntil=0, _savedGrew=false;
 function startRealtime(){
   if(_realtimeTimer) clearInterval(_realtimeTimer);
   _realtimeTimer=setInterval(function(){
-    if(Date.now()<_localDirtyUntil) return;   // ახლახან ლოკალურად შეიცვალა — ველოდებით, რომ ღრუბელმა დაასწროს, ჯერ არ გადავაწეროთ
-    cloudLoad().then(function(a){
-      if(!a) return;
+    if(Date.now()<_localDirtyUntil) return;   // ახლახან ლოკალურად შეიცვალა — ველოდებით
+    // ჯერ იაფი ხელმოწერა. სრული ჩამოტვირთვა მხოლოდ მაშინ, თუ ღრუბელში რამე შეიცვალა.
+    cloudSig().then(function(sig){
+      if(sig===null) return;
       _showSyncTime();
-      var sig=JSON.stringify(a);
-      if(sig===_lastCloudSig){ if(_savedGrew){ _savedGrew=false; render(); } return; }   // შეკვეთები არ შეცვლილა; მაგრამ თუ „დამატებულთა" სია გაიზარდა ღრუბლიდან → ხელახლა დავხატოთ (ღილაკი დაიმალოს)
-      _lastCloudSig=sig; _savedGrew=false;
-      store(a); render();
-    }).catch(function(){});
-  },7000);
+      if(sig===_sigStr) return;   // არაფერი შეცვლილა → სრული ჩამოტვირთვა არ ხდება (ეგრესი დაზოგილია)
+      _sigStr=sig;
+      cloudLoad().then(function(a){ if(!a) return; store(a); render(); }).catch(function(){});
+    });
+  },12000);
 }
 function _showSyncTime(){
   var el=document.getElementById('sync-time');
@@ -755,6 +772,7 @@ function closePwModal(){
 function login(n,r){
   me=n; role=r;
   localStorage.setItem('pw4_session', JSON.stringify({name:n, role:r}));
+  cloudLoadSaved();   // შენახული ნომრების ბაზა — ერთხელ, შესვლისას
   cloudLoad().then(a=>{
     if(a && a.length>0){
       // Cloud has data — ვინახავთ ზუსტად ისე, როგორც არის. აპი თარიღს თავისით არასდროს ცვლის.
