@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v46';
+  var V='v47';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -64,8 +64,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .snum  { font-size:28px; font-weight:900; color:#c0392b; }
 .slbl  { font-size:10px; color:#bbb; margin-top:2px; }
 
-.addbtn { width:100%; padding:15px; background:#c0392b; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; margin-bottom:14px; display:none; align-items:center; justify-content:center; gap:8px; position:-webkit-sticky; position:sticky; top:50px; z-index:45; -webkit-transform:translateZ(0); transform:translateZ(0); will-change:transform; box-shadow:0 4px 12px rgba(192,57,43,.3); }
+.addbtn { width:100%; padding:15px; background:#c0392b; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; margin-bottom:14px; display:none; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(192,57,43,.3); }
 .addbtn:active { transform:scale(.98); }
+.addwrap { display:none; position:-webkit-sticky; position:sticky; top:50px; z-index:45; max-width:660px; margin:0 auto; width:100%; box-sizing:border-box; padding:12px 14px 0; background:#f2f2f7; }
 
 /* FORM */
 .formbox { background:#fff; border-radius:16px; padding:0; box-shadow:0 2px 14px rgba(0,0,0,.06); margin-bottom:14px; display:none; overflow:hidden; }
@@ -167,6 +168,7 @@ body.dark .tabs { background:#1e1e1e; border-color:#333; }
 body.dark .tab { color:#888; }
 body.dark .tab.on { color:#e74c3c; border-bottom-color:#e74c3c; }
 body.dark .wrap { background:transparent; }
+body.dark .addwrap { background:#111; }
 body.dark .stat { background:#1e1e1e; }
 body.dark .card { background:#1e1e1e; box-shadow:0 1px 8px rgba(0,0,0,.3); }
 body.dark .ctxmenu { background:#2a2a2a; box-shadow:0 8px 30px rgba(0,0,0,.5); }
@@ -291,6 +293,25 @@ body.dark .cs-row { border-color:#2a2a2a; }
     </div>
   </div>
 
+  <div class="addwrap" id="addwrap">
+    <button class="addbtn" id="addbtn" onclick="openForm()">➕ ახალი შეკვეთა</button>
+
+    <div class="formbox" id="form">
+      <div class="fgroup">
+        <textarea class="finp-big" id="f-raw" rows="10" style="resize:none;line-height:1.6;font-size:16px" oninput="autoSlotDetect()"></textarea>
+      </div>
+      <div class="slotpick">
+        <button class="slotbtn" id="sb0" onclick="pickSlot(0)">🏃 დილა</button>
+        <button class="slotbtn" id="sb1" onclick="pickSlot(1)">☀️ შუადღე</button>
+        <button class="slotbtn" id="sb2" onclick="pickSlot(2)">🌙 საღამო</button>
+      </div>
+      <div class="factions">
+        <button class="cancbtn" onclick="closeForm()">გაუქმება</button>
+        <button class="savebtn" onclick="saveOrder()">💾 შენახვა</button>
+      </div>
+    </div>
+  </div>
+
   <div class="wrap">
     <div class="stats" id="stats" style="display:none">
       <div class="stat"><div class="snum" id="s-all">0</div><div class="slbl">დღეს სულ</div></div>
@@ -320,23 +341,6 @@ body.dark .cs-row { border-color:#2a2a2a; }
       <div class="stat"><div class="snum" id="ds-am" style="color:#f39c12">0</div><div class="slbl">🏃 დილა</div></div>
       <div class="stat"><div class="snum" id="ds-pm" style="color:#27ae60">0</div><div class="slbl">🌞 შუადღე</div></div>
       <div class="stat"><div class="snum" id="ds-ev" style="color:#8e44ad">0</div><div class="slbl">🌛 საღამო</div></div>
-    </div>
-
-    <button class="addbtn" id="addbtn" onclick="openForm()">➕ ახალი შეკვეთა</button>
-
-    <div class="formbox" id="form">
-      <div class="fgroup">
-        <textarea class="finp-big" id="f-raw" rows="10" style="resize:none;line-height:1.6;font-size:16px" oninput="autoSlotDetect()"></textarea>
-      </div>
-      <div class="slotpick">
-        <button class="slotbtn" id="sb0" onclick="pickSlot(0)">🏃 დილა</button>
-        <button class="slotbtn" id="sb1" onclick="pickSlot(1)">☀️ შუადღე</button>
-        <button class="slotbtn" id="sb2" onclick="pickSlot(2)">🌙 საღამო</button>
-      </div>
-      <div class="factions">
-        <button class="cancbtn" onclick="closeForm()">გაუქმება</button>
-        <button class="savebtn" onclick="saveOrder()">💾 შენახვა</button>
-      </div>
     </div>
 
     <div class="daybar" id="daybar"></div>
@@ -807,6 +811,7 @@ function login(n,r){
   document.getElementById('huser').textContent=n;
   if(r==='admin'){
     document.getElementById('addbtn').style.display='flex';
+    document.getElementById('addwrap').style.display='block';
     document.getElementById('stats').style.display='grid';
     var _st=localStorage.getItem('pw4_tab');
     if(!['today','cal'].includes(_st)) _st='today';
