@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v44';
+  var V='v45';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -64,7 +64,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .snum  { font-size:28px; font-weight:900; color:#c0392b; }
 .slbl  { font-size:10px; color:#bbb; margin-top:2px; }
 
-.addbtn { width:100%; padding:15px; background:#c0392b; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; margin-bottom:14px; display:none; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 12px rgba(192,57,43,.3); }
+.addbtn { width:100%; padding:15px; background:#c0392b; color:#fff; border:none; border-radius:14px; font-size:15px; font-weight:900; cursor:pointer; margin-bottom:14px; display:none; align-items:center; justify-content:center; gap:8px; position:sticky; top:50px; z-index:45; box-shadow:0 4px 12px rgba(192,57,43,.3); }
 .addbtn:active { transform:scale(.98); }
 
 /* FORM */
