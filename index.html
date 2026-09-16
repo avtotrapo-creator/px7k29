@@ -5,7 +5,7 @@
 <script>
 // Force fresh load — bypass any cached old version
 (function(){
-  var V='v48';
+  var V='v49';
   if(location.search.indexOf('v='+V)===-1){
     location.replace('?v='+V);
   }
@@ -56,6 +56,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; backg
 .tab.on { color:#c0392b; border-bottom-color:#c0392b; }
 .tabic { font-size:19px; display:block; margin-bottom:1px; }
 .tbadge { display:inline-block; background:#c0392b; color:#fff; border-radius:10px; font-size:10px; padding:0 5px; line-height:16px; margin-left:2px; vertical-align:middle; }
+.menu-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:400; }
+.menu-panel { position:fixed; top:0; left:0; height:100%; width:84%; max-width:370px; background:#fff; color:#1a1a1a; z-index:401; box-shadow:2px 0 22px rgba(0,0,0,.28); transform:translateX(-100%); transition:transform .22s ease; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:30px; }
+.menu-panel.on { transform:translateX(0); }
+body.dark .menu-panel { background:#1a1a1a; color:#f0f0f0; }
 
 .wrap { flex:1; padding:14px; max-width:660px; margin:0 auto; width:100%; }
 
@@ -282,6 +286,7 @@ body.dark .cs-row { border-color:#2a2a2a; }
 
   <div class="topstick">
   <div class="tabs">
+    <div id="menu-btn" onclick="openMenu()" style="display:none;flex:0 0 auto;padding:11px 16px;font-size:21px;cursor:pointer;color:#c0392b;align-items:center;justify-content:center">☰</div>
     <div class="tab on" onclick="setTab('orders')" id="t-orders" style="display:none">შეკვეთები</div>
     <div class="tab" onclick="setTab('mine')" id="t-mine" style="display:none">ჩემი</div>
     <div class="tab" onclick="setTab('today')" id="t-today">დღეს</div>
@@ -350,6 +355,15 @@ body.dark .cs-row { border-color:#2a2a2a; }
     <div class="daybar" id="daybar"></div>
     <div id="list"></div>
   </div>
+</div>
+
+<div class="menu-bg" id="menu-bg" onclick="closeMenu()"></div>
+<div class="menu-panel" id="menu-panel">
+  <div style="background:#c0392b;color:#fff;padding:calc(16px + env(safe-area-inset-top)) 18px 15px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0">
+    <div style="font-size:17px;font-weight:900">🐷 პიწკინა · ჯამი</div>
+    <div onclick="closeMenu()" style="font-size:24px;cursor:pointer;line-height:1;opacity:.9">✕</div>
+  </div>
+  <div id="menu-body" style="padding:16px"></div>
 </div>
 
 <!-- ASSIGN MODAL -->
@@ -816,6 +830,7 @@ function login(n,r){
   if(r==='admin'){
     document.getElementById('addbtn').style.display='flex';
     document.getElementById('addwrap').style.display='block';
+    document.getElementById('menu-btn').style.display='flex';
     document.getElementById('stats').style.display='grid';
     var _st=localStorage.getItem('pw4_tab');
     if(!['today','cal'].includes(_st)) _st='today';
@@ -1229,6 +1244,58 @@ function renderCourierStats(){
   el.innerHTML=html;
 }
 
+function _monthOrders(){
+  var all=load(); var now=new Date();
+  var first=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
+  var T=today();
+  return all.filter(function(o){ return o.date && o.date>=first && o.date<=T; });
+}
+function _totalsRowsHtml(x){
+  var rows=['🐷 გოჭი — <b>'+_fmtN(x.piglet)+'</b>'];
+  if(Object.keys(x.stur).length) rows.push('🐬 ზუთხი — '+_fishStr(x.stur));
+  if(Object.keys(x.sal).length) rows.push('🐟 ორაგული — '+_fishStr(x.sal));
+  if(x.khach) rows.push('🫓 ხაჭაპური — <b>'+x.khach+'</b>');
+  if(x.lob) rows.push('🫓 ლობიანი — <b>'+x.lob+'</b>');
+  if(x.dafaStur) rows.push('🐬 ზუთხის დაფა — <b>'+x.dafaStur+'</b>');
+  if(x.dafaSal) rows.push('🐟 ორაგულის დაფა — <b>'+x.dafaSal+'</b>');
+  if(x.dafa) rows.push('🪵 დაფა — <b>'+x.dafa+'</b>');
+  return rows.join('<br>');
+}
+function renderMenu(){
+  var GEO_MONTHS=['იანვარი','თებერვალი','მარტი','აპრილი','მაისი','ივნისი','ივლისი','აგვისტო','სექტემბერი','ოქტომბერი','ნოემბერი','დეკემბერი'];
+  var now=new Date();
+  var mo=_monthOrders();
+  var lbl=GEO_MONTHS[now.getMonth()]+' 1–'+now.getDate();
+  var tot=productTotals(mo);
+  var html='';
+  html+='<div style="font-size:12px;font-weight:900;color:#c0392b;letter-spacing:.4px;margin-bottom:7px">📊 ჯამი · '+lbl+'</div>';
+  html+='<div style="font-size:15px;line-height:1.95;border:2px solid #c0392b;border-radius:14px;background:rgba(192,57,43,.07);padding:12px 15px;margin-bottom:22px">'+_totalsRowsHtml(tot)+'</div>';
+  html+='<div style="font-size:12px;font-weight:900;color:#c0392b;letter-spacing:.4px;margin-bottom:7px">🚗 კურიერები · '+lbl+'</div>';
+  var couriers=[['ანდრო','🚙'],['ლევანი','🚗'],['ბექა','🚐']];
+  couriers.forEach(function(cc){
+    var name=cc[0], ic=cc[1];
+    var his=mo.filter(function(o){return o.courier===name;});
+    var pig=productTotals(his).piglet;
+    var done=his.filter(function(o){return o.done;}).length;
+    html+='<div style="display:flex;align-items:center;gap:11px;padding:11px 13px;margin-bottom:9px;border-radius:13px;background:rgba(128,128,128,.12)">'
+      +'<span style="font-size:25px">'+ic+'</span>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">'+name+'</div>'
+      +'<div style="font-size:11px;color:#999;margin-top:2px">🐷 '+_fmtN(pig)+' გოჭი · '+done+' ✓</div></div>'
+      +'<div style="text-align:right"><div style="font-size:22px;font-weight:900;color:#c0392b;line-height:1">'+his.length+'</div><div style="font-size:10px;color:#aaa">შეკვეთა</div></div>'
+    +'</div>';
+  });
+  document.getElementById('menu-body').innerHTML=html;
+}
+function openMenu(){
+  renderMenu();
+  document.getElementById('menu-bg').style.display='block';
+  var p=document.getElementById('menu-panel');
+  requestAnimationFrame(function(){ p.classList.add('on'); });
+}
+function closeMenu(){
+  document.getElementById('menu-panel').classList.remove('on');
+  document.getElementById('menu-bg').style.display='none';
+}
 function render(){
   const all=load();
   const cdn=document.getElementById('cal-day-num');
